@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////
+//
+//	glutGameController by Jordy de Hoon
+//	MIT LICENSE , goto www.github.com/JordyDH/glutGameControl
+//
+////////////////////////////////////////////////////////////////////
+#define  GLUT_GAMEC_VERSION "0.1"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,10 +12,12 @@
 #include <GL/glut.h>
 #include "glutGameControl.h"
 ////////////////// CONTROLS //////////////////
-#define FORW	'z'
-#define BACK	's'
-#define LEFT	'q'
-#define RIGHT	'd'
+#define FORW	'z'	//Moves the camera forwards
+#define BACK	's'	//Moves the camera backwards
+#define LEFT	'q'	//Moves the camera left
+#define RIGHT	'd'	//Moves the camera right
+#define UP	'a'	//Moves the camera up
+#define DOWN	'e'	//Moves the camera down
 ////////////////// PLAYER MODEL //////////////////
 #define PHEIGHT	1.0
 ////////////////// FUNCTION POINTERS //////////////////
