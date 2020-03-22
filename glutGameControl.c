@@ -12,19 +12,20 @@
 #include <GL/glut.h>
 #include "glutGameControl.h"
 ////////////////// CONTROLS //////////////////
-#define FORW	'z'	//Moves the camera forwards
-#define BACK	's'	//Moves the camera backwards
-#define LEFT	'q'	//Moves the camera left
-#define RIGHT	'd'	//Moves the camera right
-#define UP	'a'	//Moves the camera up
-#define DOWN	'e'	//Moves the camera down
+#define GLUTGAME_CONTROL_FORW	'z'	//Moves the camera forwards
+#define GLUTGAME_CONTROL_BACK	's'	//Moves the camera backwards
+#define GLUTGAME_CONTROL_LEFT	'q'	//Moves the camera left
+#define GLUTGAME_CONTROL_RIGHT	'd'	//Moves the camera right
+#define GLUTGAME_CONTROL_UP	'a'	//Moves the camera up
+#define GLUTGAME_CONTROL_DOWN	'e'	//Moves the camera down
 ////////////////// PLAYER MODEL //////////////////
-#define PHEIGHT	1.0
+#define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
+#define GLUTGAME_PLAYER_BASESPEED	0.05	//Default step size
 ////////////////// FUNCTION POINTERS //////////////////
-void (*RenderScene_fnc)();
+void (*RenderScene_fnc)();	//Callback function to render the scene
 ////////////////// LIB VARS //////////////////
-double rotation = 0;
-double Angle2 = 0;
+double rotation_lr = 0;		//
+double rotation_ud = 0;
 double xl = 0, yl = 1, zl = 0;
 double xPos = 3, yPos = 0, zPos = 5;
 int mouse_state_left, mouse_state_right = 0;
@@ -33,7 +34,7 @@ double framecounter = 0;
 ////////////////// LIB FUNCTION //////////////////
 void glutGameRenderCamera()
 {
-	gluLookAt(xPos,yPos+PHEIGHT,zPos, xPos+xl,yPos+yl+PHEIGHT,zPos+zl, 0, 1, 0);
+	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl, 0, 1, 0);
 }
 
 void glutGameInitCamera(double x, double y, double z)
@@ -85,32 +86,38 @@ void glutGameMoveCamera(int key, int speedmul)
 {
 	switch(key)
 	{
-		case LEFT :
-			xPos += zl * 0.1 * speedmul;
-			zPos -= xl * 0.1 * speedmul;
+		case GLUTGAME_CONTROL_LEFT :
+			xPos += zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
+			zPos -= xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
 			break;
-		case RIGHT :
-			xPos -= zl * 0.1 * speedmul;
-			zPos += xl * 0.1 * speedmul;
+		case GLUTGAME_CONTROL_RIGHT :
+			xPos -= zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
+			zPos += xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
 			break;
-		case FORW :
-			xPos += xl * 0.1 * speedmul;
-			zPos += zl * 0.1 * speedmul;
+		case GLUTGAME_CONTROL_FORW :
+			xPos += xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
+			zPos += zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
 			break;
-		case BACK :
-			xPos -= xl * 0.1 * speedmul;
-			zPos -= zl * 0.1 * speedmul;
+		case GLUTGAME_CONTROL_BACK :
+			xPos -= xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
+			zPos -= zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
+			break;
+		case GLUTGAME_CONTROL_UP :
+			yPos += GLUTGAME_PLAYER_BASESPEED;
+			break;
+		case GLUTGAME_CONTROL_DOWN :
+			yPos -= GLUTGAME_PLAYER_BASESPEED;
 			break;
 	}
 }
 
 void glutGameRotateCamera(double dxa, double dza)
 {
-	rotation += dxa;
-	Angle2 -= dza;
-	xl = sin(rotation);
-	zl = -cos(rotation);
-	yl = sin(Angle2);
+	rotation_lr += dxa;
+	rotation_ud -= dza;
+	xl = sin(rotation_lr);
+	zl = -cos(rotation_lr);
+	yl = sin(rotation_ud);
 }
 
 

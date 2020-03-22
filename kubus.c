@@ -98,7 +98,7 @@ void toetsen( unsigned char key, int x, int y)
 			      xvw  = zvw  = 0.0;  yvw = 1.0;  
 			      xref = yref =  zref = 0.0;    break;
 		case '0' : lijnen = !lijnen;         break;
-		case 'a' : exit(0);                break;
+		//case 'a' : exit(0);                break;
 	}
 	printf("Oog bl%5.1f gr%5.1f rd%5.1f ", xlens, ylens, zlens );
 	printf("  Ref %5.1f %5.1f %5.1f ViR %4.1f %4.1f %4.1f\n",
