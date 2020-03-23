@@ -31,8 +31,8 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 ////////////////// RENDER SETTINGS //////////////////
 //#define GLUTGAME_RENDER_SHOWFPS			//Show the FPS in the terminal, overloads the terminal
 #define GLUTGAME_RENDER_ONTIMER			//TRUE to use glutTimerFunc callback to render scene
-#define GLUTGAME_RENDER_INTERVAL	10	//time in ms between screen renders
-//#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
+#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders
+#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
 ////////////////// FUNCTION POINTERS //////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
 ////////////////// LIB VARS //////////////////
@@ -82,12 +82,13 @@ void glutGameRenderScene()
 	(*RenderScene_fnc)();
 	glutGameRenderLocalAxis();
 	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
-		glFinish();
+		//glFinish();
 		glutSwapBuffers();
 	#else
+		glFinish();
 		glFlush();
 	#endif
-	glutGameGetFPS();
+	//glutGameGetFPS();
 }
 
 void glutGameRender(int systick_old)
@@ -112,8 +113,8 @@ void glutGameRescale(GLint n_w, GLint n_h)
 	GLdouble grens;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-//	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
-	gluPerspective(60.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	//gluPerspective(10.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
 	glViewport(0, 0, n_w, n_h);
 
 }
@@ -238,6 +239,9 @@ void glutGameKeyboardReleased(int key, int x, int y)
 void glutGameMoveCamera(int key)
 {
 	render_needed = 1;
+	//#HACK : overwrite xl, zl globals with fix xz plane values
+	double xl = sin(rotation_lr);
+	double zl = -cos(rotation_lr);
 	#ifdef GLUTGAME_CONTROL_USEREG
 		if(GLUTGAME_CONTROL_REG & (0x01 << 0))		//GLUTGAME_CONTROL_FORW
 		{

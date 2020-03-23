@@ -196,11 +196,12 @@ int main( int argc, char * argv[])
 		projectie = 'p';      /* default symmetrisch perspectief  */
 	titel[16] = projectie;
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH );
+
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );
 	//glEnable(GL_MULTISAMPLE);
 	//glEnable(GL_LINE_SMOOTH);
 	//glEnable(GL_POLYGON_SMOOTH);
-	glutInitWindowPosition(0,0);
+	glutInitWindowPosition(1920+10,10);
 	glutInitWindowSize(800, 800);
 	glutCreateWindow(titel);
     	myinit();
