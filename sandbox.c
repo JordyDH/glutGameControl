@@ -79,7 +79,7 @@ void fullkubus(int x, int y, int z, float size)
 
 void toetsen( unsigned char key, int x, int y)
 {
-	glutGameMoveCamera(key,1.0);
+	//glutGameMoveCamera(key,1.0);
 	//glutPostRedisplay();
 	//kubus();
 }
@@ -153,7 +153,6 @@ void kubus(void)
 		glDisable(GL_LINE_STIPPLE);
 	}
 	glPopMatrix();
-	glFlush();
 }
 void herschaal(GLint n_w, GLint n_h) 
 {
@@ -204,7 +203,8 @@ int main( int argc, char * argv[])
 	glutInitWindowSize(400, 400);
 	glutCreateWindow(titel);
     	myinit();
-	glutKeyboardFunc(toetsen);
+	//glutKeyboardFunc(toetsen);
+	glutGameKeyboardInit();
 	glutReshapeFunc(herschaal);
 	glutDisplayFunc(glutGameRenderScene);
 	glutMouseFunc(glutGameMouseFunction);
