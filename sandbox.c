@@ -80,7 +80,7 @@ void fullkubus(int x, int y, int z, float size)
 void toetsen( unsigned char key, int x, int y)
 {
 	glutGameMoveCamera(key,1.0);
-	glutPostRedisplay();
+	//glutPostRedisplay();
 	//kubus();
 }
 void as(double lengte)
@@ -206,9 +206,13 @@ int main( int argc, char * argv[])
     	myinit();
 	glutKeyboardFunc(toetsen);
 	glutReshapeFunc(herschaal);
-	glutDisplayFunc(kubus);
+	glutDisplayFunc(glutGameRenderScene);
 	glutMouseFunc(glutGameMouseFunction);
 	glutMotionFunc(glutGameMouseMove);
 	glutPassiveMotionFunc(glutGameMouseMove);
-	glutMainLoop();
+
+	glutGameSetRenderScene(kubus);
+	glutGameMainLoop();
+
+	//glutMainLoop();
 }

@@ -21,26 +21,45 @@
 ////////////////// PLAYER MODEL //////////////////
 #define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
 #define GLUTGAME_PLAYER_BASESPEED	0.05	//Default step size
+////////////////// RENDER SETTINGS //////////////////
+//#define GLUTGAME_RENDER_SHOWFPS			//Show the FPS in the terminal, overloads the terminal
+#define GLUTGAME_RENDER_ONTIMER			//TRUE to use glutTimerFunc callback to render scene
+#define GLUTGAME_RENDER_INTERVAL	10	//time in ms between screen renders
 ////////////////// FUNCTION POINTERS //////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
 ////////////////// LIB VARS //////////////////
 double	rotation_lr = 0;		//
 double	rotation_ud = 0;
 double	xl = 0, yl = 0, zl = 0;
+double	xr = 0, yr = 1, zr = 0;
 double	xPos = 3, yPos = 0, zPos = 5;
 int	mouse_state_left, mouse_state_right = 0;
 int	mouse_x_old, mouse_y_old = 0;
 double	framecounter = 0;
 int 	render_needed = 0;
+unsigned int systick = 0;
 ////////////////// LIB FUNCTION //////////////////
+
+void glutGameMainLoop()
+{
+	#ifdef GLUTGAME_RENDER_ONTIMER
+	glutTimerFunc(GLUTGAME_RENDER_INTERVAL, glutGameRender,systick);
+	#endif
+	//Start glut main loop
+	glutMainLoop();
+}
+
 void glutGameRenderCamera()
 {
-	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+GLUTGAME_PLAYER_HEIGHT+yl,zPos+zl, 0, 1, 0);
+	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+GLUTGAME_PLAYER_HEIGHT+yl,zPos+zl, xr, yr, zr);
 }
 
 void glutGameInitCamera(double x, double y, double z)
 {
 	xPos = x; yPos = y; zPos = z;
+	xl = 0; yl = 0; zl = 0;
+	rotation_lr = 0;
+	rotation_ud = 0;
 }
 
 void glutGameSetRenderScene(void (*fnc_p)())
@@ -53,13 +72,22 @@ void glutGameRenderScene()
 	(*RenderScene_fnc)();
 }
 
-void glutGameRender()
+void glutGameRender(int systick_old)
 {
+	#ifdef GLUT_RENDER_ONTIMER
+	if(systick!=systick_old)printf("[GLUTGAME][WARNING] : Callback older systick, skipped a render?\n");
+	#endif
+	systick += 1;
 	if(render_needed)
 	{
+		glutGameRenderCamera();
 		glutPostRedisplay();
 		render_needed = 0;
 	}
+	#ifdef GLUTGAME_RENDER_ONTIMER
+	glutTimerFunc(GLUTGAME_RENDER_INTERVAL,glutGameRender,systick);
+	#endif
+	glutGameGetFPS();
 }
 
 void glutGameRescale()
@@ -70,6 +98,9 @@ void glutGameRescale()
 double glutGameGetFPS()
 {
 	framecounter = 1000/((double)glutGet(GLUT_ELAPSED_TIME));
+	#ifdef GLUTGAME_RENDER_SHOWFPS
+	printf("[GLUTGAME][RENDER] FPS : %.2lf\n",framecounter);
+	#endif
 	return framecounter;
 }
 
@@ -79,6 +110,10 @@ void glutGameMouseFunction(int button, int state, int x, int y)
                 mouse_state_left = 1;
         else
                 mouse_state_left = 0;
+	if((state == GLUT_DOWN)&&(button == GLUT_RIGHT_BUTTON))
+                mouse_state_right = 1;
+        else
+                mouse_state_right = 0;
 }
 
 void glutGameMouseMove(int x, int y)
@@ -90,7 +125,7 @@ void glutGameMouseMove(int x, int y)
 		delta_x = x - mouse_x_old;
 		delta_y = y - mouse_y_old;
 		glutGameRotateCamera(((double)delta_x/100),((double)delta_y/100));
- 		glutPostRedisplay();
+ 		//glutPostRedisplay();
 		render_needed = 1;
 	}
 	//#Save location in old value
@@ -100,9 +135,9 @@ void glutGameMouseMove(int x, int y)
 
 void glutGameMoveCamera(int key, int speedmul)
 {
+	render_needed = 1;
 	switch(key)
 	{
-		render_needed = 1;
 		case GLUTGAME_CONTROL_LEFT :
 			xPos += zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
 			zPos -= xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
@@ -124,8 +159,9 @@ void glutGameMoveCamera(int key, int speedmul)
 			break;
 		case GLUTGAME_CONTROL_DOWN :
 			yPos -= GLUTGAME_PLAYER_BASESPEED;
+			break;
 		default:
-			render_needed = 0;
+			//render_needed = 0;
 			break;
 	}
 }
