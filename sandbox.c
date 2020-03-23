@@ -174,7 +174,7 @@ void herschaal(GLint n_w, GLint n_h)
 				break;
 		default:
 		case 'p':
-				gluPerspective(hoek, 1.0,  near, far);
+				gluPerspective(hoek, (double)16/9,  near, far);
 				break;
 	}
 	glViewport(0, 0, n_w, n_h);
@@ -188,9 +188,6 @@ void herschaal(GLint n_w, GLint n_h)
 int main( int argc, char * argv[])
 {
 	char titel[20] = "kubus projectie    ";
-	fprintf(stderr, "Gebruik: vlucht p<o/f/F>\n");
-	fprintf(stderr, " vluchtlijnen 0 \n");
-	fprintf(stderr, "xyz oog    uvw refpunt   jkl viewrichting  r(eset)\n");
 	if ( argc > 1 )
 	{
 		projectie = argv[1][0];
@@ -200,13 +197,16 @@ int main( int argc, char * argv[])
 	titel[16] = projectie;
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH );
-	glutInitWindowPosition(50, 100);
-	glutInitWindowSize(400, 400);
+	//glEnable(GL_MULTISAMPLE);
+	//glEnable(GL_LINE_SMOOTH);
+	//glEnable(GL_POLYGON_SMOOTH);
+	glutInitWindowPosition(0,0);
+	glutInitWindowSize(800, 800);
 	glutCreateWindow(titel);
     	myinit();
 	//glutKeyboardFunc(toetsen);
 	glutGameKeyboardInit();
-	glutReshapeFunc(herschaal);
+	glutReshapeFunc(glutGameRescale);
 	glutDisplayFunc(glutGameRenderScene);
 	glutMouseFunc(glutGameMouseFunction);
 	glutMotionFunc(glutGameMouseMove);

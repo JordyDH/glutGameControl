@@ -26,11 +26,13 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 ////////////////// PLAYER MODEL //////////////////
 #define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
 #define GLUTGAME_PLAYER_BASESPEED	0.05	//Default step size
+#define GLUTGAME_PLAYER_NEARSIGHT	0.01
+#define GLUTGAME_PLAYER_FARSIGHT	100
 ////////////////// RENDER SETTINGS //////////////////
 //#define GLUTGAME_RENDER_SHOWFPS			//Show the FPS in the terminal, overloads the terminal
 #define GLUTGAME_RENDER_ONTIMER			//TRUE to use glutTimerFunc callback to render scene
-#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders
-#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
+#define GLUTGAME_RENDER_INTERVAL	10	//time in ms between screen renders
+//#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
 ////////////////// FUNCTION POINTERS //////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
 ////////////////// LIB VARS //////////////////
@@ -80,6 +82,7 @@ void glutGameRenderScene()
 	(*RenderScene_fnc)();
 	glutGameRenderLocalAxis();
 	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
+		glFinish();
 		glutSwapBuffers();
 	#else
 		glFlush();
@@ -104,9 +107,15 @@ void glutGameRender(int systick_old)
 	#endif
 }
 
-void glutGameRescale()
+void glutGameRescale(GLint n_w, GLint n_h)
 {
-	
+	GLdouble grens;
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+//	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	gluPerspective(60.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	glViewport(0, 0, n_w, n_h);
+
 }
 
 double glutGameGetFPS()
@@ -132,7 +141,7 @@ void glutGameMouseFunction(int button, int state, int x, int y)
 
 void glutGameMouseMove(int x, int y)
 {
-	glutWarpPointer(0,0);
+//	glutWarpPointer(0,0);
 	int delta_x = 0, delta_y = 0;
 	if(mouse_state_left)
 	{
@@ -295,15 +304,15 @@ void glutGameRotateCamera(double dxa, double dza)
 {
 	rotation_lr += dxa;
 	rotation_ud -= dza;
-	xl = sin(rotation_lr);
-	zl = -cos(rotation_lr);
+	xl = sin(rotation_lr) * cos(rotation_ud);
+	zl = -cos(rotation_lr) * cos(rotation_ud);
 	yl = sin(rotation_ud);
 }
 
 void glutGameRenderLocalAxis()
 {
 	//Draw the world axis in front of the camera
-	double lengt = 0.10;
+	double lengt = 0.05;
 	double mod_x, mod_z;
 	if(GLUTGAME_CONTROL_REG & (0x01 << 6))
 	{
