@@ -4,4 +4,5 @@
 !*.c
 !*.h
 !*.md
+!makefile
 !LICENSE
