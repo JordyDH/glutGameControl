@@ -24,17 +24,18 @@
 ////////////////// FUNCTION POINTERS //////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
 ////////////////// LIB VARS //////////////////
-double rotation_lr = 0;		//
-double rotation_ud = 0;
-double xl = 0, yl = 1, zl = 0;
-double xPos = 3, yPos = 0, zPos = 5;
-int mouse_state_left, mouse_state_right = 0;
-int mouse_x_old, mouse_y_old = 0;
-double framecounter = 0;
+double	rotation_lr = 0;		//
+double	rotation_ud = 0;
+double	xl = 0, yl = 0, zl = 0;
+double	xPos = 3, yPos = 0, zPos = 5;
+int	mouse_state_left, mouse_state_right = 0;
+int	mouse_x_old, mouse_y_old = 0;
+double	framecounter = 0;
+int 	render_needed = 0;
 ////////////////// LIB FUNCTION //////////////////
 void glutGameRenderCamera()
 {
-	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl, 0, 1, 0);
+	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+GLUTGAME_PLAYER_HEIGHT+yl,zPos+zl, 0, 1, 0);
 }
 
 void glutGameInitCamera(double x, double y, double z)
@@ -50,6 +51,20 @@ void glutGameSetRenderScene(void (*fnc_p)())
 void glutGameRenderScene()
 {
 	(*RenderScene_fnc)();
+}
+
+void glutGameRender()
+{
+	if(render_needed)
+	{
+		glutPostRedisplay();
+		render_needed = 0;
+	}
+}
+
+void glutGameRescale()
+{
+	
 }
 
 double glutGameGetFPS()
@@ -76,6 +91,7 @@ void glutGameMouseMove(int x, int y)
 		delta_y = y - mouse_y_old;
 		glutGameRotateCamera(((double)delta_x/100),((double)delta_y/100));
  		glutPostRedisplay();
+		render_needed = 1;
 	}
 	//#Save location in old value
 	mouse_x_old = x;
@@ -86,6 +102,7 @@ void glutGameMoveCamera(int key, int speedmul)
 {
 	switch(key)
 	{
+		render_needed = 1;
 		case GLUTGAME_CONTROL_LEFT :
 			xPos += zl * GLUTGAME_PLAYER_BASESPEED * speedmul;
 			zPos -= xl * GLUTGAME_PLAYER_BASESPEED * speedmul;
@@ -107,6 +124,8 @@ void glutGameMoveCamera(int key, int speedmul)
 			break;
 		case GLUTGAME_CONTROL_DOWN :
 			yPos -= GLUTGAME_PLAYER_BASESPEED;
+		default:
+			render_needed = 0;
 			break;
 	}
 }
