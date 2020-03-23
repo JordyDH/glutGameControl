@@ -19,6 +19,7 @@
 #define GLUTGAME_CONTROL_UP	'a'	//Moves the camera up		--Bit 4 in control reg
 #define GLUTGAME_CONTROL_DOWN	'e'	//Moves the camera down		--Bit 5 in control reg
 #define GLUTGAME_CONTROL_USEREG
+#define GLUTGAME_CONTROL_TIMER	1
 uint64_t GLUTGAME_CONTROL_REG = 0;
 ////////////////// PLAYER MODEL //////////////////
 #define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
@@ -145,9 +146,10 @@ void glutGameMouseMove(int x, int y)
 void glutGameKeyboardInit()
 {
 	#ifdef GLUTGAME_CONTROL_USEREG
+	glutIgnoreKeyRepeat(0x01);
 	glutKeyboardFunc(glutGameKeyboardPressed);
 	glutKeyboardUpFunc(glutGameKeyboardReleased);
-	glutTimerFunc(1,glutGameMoveCamera,0);
+	glutTimerFunc(GLUTGAME_CONTROL_TIMER,glutGameMoveCamera,0);
 	#else
 	glutKeyboardFunc(glutGameKeyboardPressed);
 	#endif
@@ -155,7 +157,7 @@ void glutGameKeyboardInit()
 
 void glutGameKeyboardPressed(int key, int x, int y)
 {
-	printf("Ket pressed :%c\n",key);
+	printf("Key pressed :%c\n",key);
 	#ifdef GLUTGAME_CONTROL_USEREG
 	switch(key)
 	{
@@ -185,26 +187,26 @@ void glutGameKeyboardPressed(int key, int x, int y)
 
 void glutGameKeyboardReleased(int key, int x, int y)
 {
-	printf("Ket released :%c\n",key);
+	printf("Key released :%c\n",key);
 	switch(key)
 	{
 		case GLUTGAME_CONTROL_FORW:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 0);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 0));
 			break;
 		case GLUTGAME_CONTROL_BACK:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 1);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 1));
 			break;
 		case GLUTGAME_CONTROL_LEFT:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 2);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 2));
 			break;
 		case GLUTGAME_CONTROL_RIGHT:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 3);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 3));
 			break;
 		case GLUTGAME_CONTROL_UP:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 4);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 4));
 			break;
 		case GLUTGAME_CONTROL_DOWN:
-			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & ((~0x01) << 5);
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 5));
 			break;
 	}
 }
@@ -235,11 +237,11 @@ void glutGameMoveCamera(int key)
 		}
 		if(GLUTGAME_CONTROL_REG & (0x01 << 4))		//GLUTGAME_CONTROL_UP
 		{
-			yPos += yl * GLUTGAME_PLAYER_BASESPEED * speed_mul;
+			yPos += GLUTGAME_PLAYER_BASESPEED * speed_mul;
 		}
 		if(GLUTGAME_CONTROL_REG & (0x01 << 5))		//GLUTGAME_CONTROL_DOWN
 		{
-			yPos -= yl * GLUTGAME_PLAYER_BASESPEED * speed_mul;
+			yPos -= GLUTGAME_PLAYER_BASESPEED * speed_mul;
 		}
 		glutTimerFunc(1,glutGameMoveCamera,0);
 	#else
