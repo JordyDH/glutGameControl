@@ -5,6 +5,7 @@
 //
 ////////////////////////////////////////////////////////////////////
 #define  GLUT_GAMEC_VERSION "0.1"
+#define  GLUTGAME_DEBUG_INFO
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,7 @@
 #define GLUTGAME_CONTROL_RIGHT	'd'	//Moves the camera right	--Bit 3 in control reg
 #define GLUTGAME_CONTROL_UP	'a'	//Moves the camera up		--Bit 4 in control reg
 #define GLUTGAME_CONTROL_DOWN	'e'	//Moves the camera down		--Bit 5 in control reg
+#define GLUTGAME_CONTROL_AXIS	'i'	//Renders the axis		--Bit 6 in control reg
 #define GLUTGAME_CONTROL_USEREG
 #define GLUTGAME_CONTROL_TIMER	1
 uint64_t GLUTGAME_CONTROL_REG = 0;
@@ -27,7 +29,7 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 ////////////////// RENDER SETTINGS //////////////////
 //#define GLUTGAME_RENDER_SHOWFPS			//Show the FPS in the terminal, overloads the terminal
 #define GLUTGAME_RENDER_ONTIMER			//TRUE to use glutTimerFunc callback to render scene
-#define GLUTGAME_RENDER_INTERVAL	10	//time in ms between screen renders
+#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders
 #define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
 ////////////////// FUNCTION POINTERS //////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
@@ -74,12 +76,15 @@ void glutGameSetRenderScene(void (*fnc_p)())
 
 void glutGameRenderScene()
 {
+	//glutGameGetFPS();
 	(*RenderScene_fnc)();
+	glutGameRenderLocalAxis();
 	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
 		glutSwapBuffers();
 	#else
 		glFlush();
 	#endif
+	glutGameGetFPS();
 }
 
 void glutGameRender(int systick_old)
@@ -97,7 +102,6 @@ void glutGameRender(int systick_old)
 	#ifdef GLUTGAME_RENDER_ONTIMER
 	glutTimerFunc(GLUTGAME_RENDER_INTERVAL,glutGameRender,systick);
 	#endif
-	glutGameGetFPS();
 }
 
 void glutGameRescale()
@@ -107,7 +111,7 @@ void glutGameRescale()
 
 double glutGameGetFPS()
 {
-	framecounter = (double)10000/(glutGet(GLUT_ELAPSED_TIME));
+	framecounter = (double)1000/(glutGet(GLUT_ELAPSED_TIME));
 	#ifdef GLUTGAME_RENDER_SHOWFPS
 	printf("[GLUTGAME][RENDER] FPS : %.2lf\n",framecounter);
 	#endif
@@ -128,6 +132,7 @@ void glutGameMouseFunction(int button, int state, int x, int y)
 
 void glutGameMouseMove(int x, int y)
 {
+	glutWarpPointer(0,0);
 	int delta_x = 0, delta_y = 0;
 	if(mouse_state_left)
 	{
@@ -157,7 +162,9 @@ void glutGameKeyboardInit()
 
 void glutGameKeyboardPressed(int key, int x, int y)
 {
-	printf("Key pressed :%c\n",key);
+	#ifdef GLUTGAME_DEBUG_INFO
+	printf("[GLUTGAME][KEYBOARD] Key pressed :%c\n",key);
+	#endif
 	#ifdef GLUTGAME_CONTROL_USEREG
 	switch(key)
 	{
@@ -179,6 +186,9 @@ void glutGameKeyboardPressed(int key, int x, int y)
 		case GLUTGAME_CONTROL_DOWN:
 			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG | (0x01 << 5);
 			break;
+		case GLUTGAME_CONTROL_AXIS:
+			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG ^ (0x01 << 6);	//Toggle function
+			break;
 	}
 	#else
 	glutGameMoveCamera(key);
@@ -187,7 +197,9 @@ void glutGameKeyboardPressed(int key, int x, int y)
 
 void glutGameKeyboardReleased(int key, int x, int y)
 {
-	printf("Key released :%c\n",key);
+	#ifdef GLUTGAME_DEBUG_INFO
+	printf("[GLUTGAME][KEYBOARD] Key released :%c\n",key);
+	#endif
 	switch(key)
 	{
 		case GLUTGAME_CONTROL_FORW:
@@ -207,6 +219,9 @@ void glutGameKeyboardReleased(int key, int x, int y)
 			break;
 		case GLUTGAME_CONTROL_DOWN:
 			GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 5));
+			break;
+		case GLUTGAME_CONTROL_AXIS:
+			//GLUTGAME_CONTROL_REG = GLUTGAME_CONTROL_REG & (~(0x01 << 6));
 			break;
 	}
 }
@@ -285,5 +300,32 @@ void glutGameRotateCamera(double dxa, double dza)
 	yl = sin(rotation_ud);
 }
 
+void glutGameRenderLocalAxis()
+{
+	//Draw the world axis in front of the camera
+	double lengt = 0.10;
+	double mod_x, mod_z;
+	if(GLUTGAME_CONTROL_REG & (0x01 << 6))
+	{
+		mod_x = sin(rotation_lr)*0.20;
+		mod_z = -cos(rotation_lr)*0.20;
+		glLineWidth(3);
+		glBegin(GL_LINES);
+			glColor3f(1,0,0);
+			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
+			glVertex3d(xPos+xl+lengt+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
+			glColor3f(0,1,0);
+			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
+			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+zl+mod_z);
+			glColor3f(0,0,1);
+			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
+			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+lengt+mod_z);
+		glEnd();
+	}
+}
 
+void glutGameRenderOnScreenInfo()
+{
+	
+}
 

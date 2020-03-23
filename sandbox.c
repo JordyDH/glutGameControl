@@ -9,7 +9,7 @@ GLdouble xlens = 1.0, ylens = 1.0, zlens = 3.0;
 GLdouble xref = 1.0, yref = 1.0, zref = 0.0;
 GLdouble xvw = 0.0, yvw = 1.0, zvw = 0.0;
 GLdouble xmin = -2.0, xmax = 4.0, ymin = -2.0, ymax = 3.0;
-GLdouble near = 1.0, far = 10.0;
+GLdouble near = 0.1, far = 10.0;
 GLdouble hoek = 60.0;
 GLfloat ttx = 0.25, tty = 0.25, ttz = 0.25;
 GLint lijnen = 0;
@@ -153,6 +153,7 @@ void kubus(void)
 		glDisable(GL_LINE_STIPPLE);
 	}
 	glPopMatrix();
+	//glutWireTeapot(1);
 }
 void herschaal(GLint n_w, GLint n_h) 
 {

@@ -13,3 +13,4 @@ void glutGameKeyboardPressed(int key, int x, int y);
 void glutGameKeyboardReleased(int k, int x, int y);
 void glutGameMoveCamera(int key);
 void glutGameRotateCamera(double dxa, double dza);
+void glutGameRenderLocalAxis();
