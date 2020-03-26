@@ -4,7 +4,7 @@
 //	MIT LICENSE , goto www.github.com/JordyDH/glutGameControl
 //
 ////////////////////////////////////////////////////////////////////
-#define  GLUT_GAMEC_VERSION "0.1"
+#define  GLUT_GAMEC_VERSION "0.2"
 //#define  GLUTGAME_DEBUG_INFO
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 
 //////////////////////////////////// PLAYER MODEL ////////////////////////////////////
 #define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
-#define GLUTGAME_PLAYER_BASESPEED	0.1	//Default step size
+#define GLUTGAME_PLAYER_BASESPEED	0.075	//Default step size
 #define GLUTGAME_PLAYER_NEARSIGHT	0.01
 #define GLUTGAME_PLAYER_FARSIGHT	100
 
@@ -35,9 +35,10 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 #define GLUTGAME_RENDER_FAST			//Renders the scene as fast a possible.
 #define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders, ONLY IN GLUTGAME_RENDER_ONTIMER
 //#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
-
+#define GLUTGAME_SYSTICK_INTERVAL	1000
 //////////////////////////////////// FUNCTION POINTERS ////////////////////////////////////
-void (*RenderScene_fnc)();	//Callback function to render the scene
+void (*RenderScene_fnc)() = 0x00;	//Callback function to render the 3D scene
+void (*RenderScene2D_fnc)() = 0x00;	//Callback function to render the 2D scene
 
 //////////////////////////////////// LIB VARS ////////////////////////////////////
 double	rotation_lr = 0;		//
@@ -45,6 +46,7 @@ double	rotation_ud = 0;
 double	xl = 0, yl = 0, zl = 0;
 double	xr = 0, yr = 1, zr = 0;
 double	xPos = 3, yPos = 0, zPos = 5;
+unsigned int screen_width, screen_height = 0;
 int	mouse_state_left, mouse_state_right = 0;
 int	mouse_x_old, mouse_y_old = 0;
 double	speed_mul = 0.1;
@@ -70,9 +72,9 @@ void glutGameInit()
 	glutGameControlInit();
 	glutDisplayFunc(glutGameRender);
 	glutReshapeFunc(glutGameRescale);
-	//TODO Add other timer functions
 	//glutIdleFunc(glutPostRedisplay);
 	glutTimerFunc(0,glutGameIdle,0);	//glutIdleFunc laggs the machine
+	glutTimerFunc(GLUTGAME_SYSTICK_INTERVAL,glutGameSystickService,0);
 
 }
 
@@ -96,9 +98,7 @@ void glutGameMainLoop()
 void glutGameIdle()
 {
 	glutGameRender();
-	//glutPostRedisplay();
 	glutTimerFunc(1,glutGameIdle,0);
-
 }
 
 /*
@@ -111,7 +111,7 @@ void glutGameSystickService(unsigned int systick_old)
 {
 	if(systick!=systick_old)printf("[GLUTGAME][WARNING] : Callback older systick, skipped a render?\n");
 	systick++;
-	//TODO ADD TIMERCALLBACK OF GLUT
+	glutTimerFunc(GLUTGAME_SYSTICK_INTERVAL,glutGameSystickService,systick);
 }
 
 /*
@@ -146,11 +146,39 @@ void glutGameRenderSceneSet(void (*fnc_p)())
 */
 void glutGameRenderScene()
 {
-	(*RenderScene_fnc)();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glutGameCameraRender();
+
+	if(RenderScene_fnc!=0x00)
+		(*RenderScene_fnc)();
+	glutGameRenderLocalAxis();
+}
+
+
+void glutGameRender2DScene()
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	gluOrtho2D(0.0,screen_width,screen_height,0.0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glDisable(GL_CULL_FACE);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	if(RenderScene2D_fnc != 0x00)
+		(*RenderScene2D_fnc)();
+	glutGameRenderOnScreenInfo();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
 }
 
 /*
-* Function: void glutGameRender)
+* Function: void glutGameRender()
 * -----------------------------
 * The main function glut backend uses to render the world
 * and player view.
@@ -158,15 +186,18 @@ void glutGameRenderScene()
 void glutGameRender()
 {
 	glutGameRenderScene();
+	glutGameRender2DScene();
 	//glutGameCameraRender();
-	glutGameRenderLocalAxis();
-
+	//glutGameRenderOnScreenInfo();
 	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
 		glutSwapBuffers();
 	#else
 		glFlush();
 	#endif
 	glutGameRenderFPS();
+	#ifdef GLUTGAME_RENDER_SHOWFPS
+	printf("[GLUTGAME][RENDER] FPS: %.3lf\n",glutGameRenderGetFPS());
+	#endif
 }
 
 /*
@@ -182,12 +213,9 @@ void glutGameRescale(GLint n_w, GLint n_h)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	//TODO Aspect ratio live update
 	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
-	//gluPerspective(60.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
 	glViewport(0, 0, n_w, n_h);
-	render_needed = 1;
-
+	screen_width = n_w; screen_height = n_h;
 }
 
 /*
@@ -209,7 +237,7 @@ void glutGameRenderFPS()
 * -----------------------------
 * Returns the current FPS of the running session.
 */
-unsigned int glutGameRenderGetFPS()
+double glutGameRenderGetFPS()
 {
 	return framecounter;
 }
@@ -533,6 +561,6 @@ void glutGameRenderLocalAxis()
 
 void glutGameRenderOnScreenInfo()
 {
-
+	glRasterPos2f(screen_width/2,screen_height/2);
+	glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,'X');
 }
-

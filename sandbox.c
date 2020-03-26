@@ -105,10 +105,6 @@ void as(double lengte)
 
 void kubus(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glutGameCameraRender();
 	glLineWidth(1.5);
 	as(1.8);       // z-as
 	glPushMatrix();
@@ -153,7 +149,6 @@ void kubus(void)
 		glDisable(GL_LINE_STIPPLE);
 	}
 	glPopMatrix();
-	//glutWireTeapot(1);
 }
 void herschaal(GLint n_w, GLint n_h) 
 {
