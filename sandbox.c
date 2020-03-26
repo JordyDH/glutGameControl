@@ -108,7 +108,7 @@ void kubus(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glutGameRenderCamera();
+	glutGameCameraRender();
 	glLineWidth(1.5);
 	as(1.8);       // z-as
 	glPushMatrix();
@@ -197,24 +197,16 @@ int main( int argc, char * argv[])
 	titel[16] = projectie;
 	glutInit(&argc, argv);
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );
-	//glEnable(GL_MULTISAMPLE);
-	//glEnable(GL_LINE_SMOOTH);
-	//glEnable(GL_POLYGON_SMOOTH);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
+	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_POLYGON_SMOOTH);
 	glutInitWindowPosition(1920+10,10);
 	glutInitWindowSize(800, 800);
-	glutCreateWindow(titel);
+	glutCreateWindow("SANDOX GLUTGAME");
     	myinit();
-	//glutKeyboardFunc(toetsen);
-	glutGameKeyboardInit();
-	glutReshapeFunc(glutGameRescale);
-	glutDisplayFunc(glutGameRenderScene);
-	glutMouseFunc(glutGameMouseFunction);
-	glutMotionFunc(glutGameMouseMove);
-	glutPassiveMotionFunc(glutGameMouseMove);
 
-	glutGameSetRenderScene(kubus);
+	glutGameInit();
+	glutGameRenderSceneSet(kubus);
 	glutGameMainLoop();
-
-	//glutMainLoop();
 }

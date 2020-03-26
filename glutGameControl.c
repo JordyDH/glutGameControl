@@ -5,14 +5,14 @@
 //
 ////////////////////////////////////////////////////////////////////
 #define  GLUT_GAMEC_VERSION "0.1"
-#define  GLUTGAME_DEBUG_INFO
+//#define  GLUTGAME_DEBUG_INFO
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <GL/glut.h>
 #include "glutGameControl.h"
-////////////////// CONTROLS //////////////////
+//////////////////////////////////// CONTROLS ////////////////////////////////////
 #define GLUTGAME_CONTROL_FORW	'z'	//Moves the camera forwards	--Bit 0 in control reg
 #define GLUTGAME_CONTROL_BACK	's'	//Moves the camera backwards	--Bit 1 in control reg
 #define GLUTGAME_CONTROL_LEFT	'q'	//Moves the camera left		--Bit 2 in control reg
@@ -23,19 +23,23 @@
 #define GLUTGAME_CONTROL_USEREG
 #define GLUTGAME_CONTROL_TIMER	1
 uint64_t GLUTGAME_CONTROL_REG = 0;
-////////////////// PLAYER MODEL //////////////////
+
+//////////////////////////////////// PLAYER MODEL ////////////////////////////////////
 #define GLUTGAME_PLAYER_HEIGHT		1.0	//Default player height, possition of the camera
-#define GLUTGAME_PLAYER_BASESPEED	0.05	//Default step size
+#define GLUTGAME_PLAYER_BASESPEED	0.1	//Default step size
 #define GLUTGAME_PLAYER_NEARSIGHT	0.01
 #define GLUTGAME_PLAYER_FARSIGHT	100
-////////////////// RENDER SETTINGS //////////////////
-//#define GLUTGAME_RENDER_SHOWFPS			//Show the FPS in the terminal, overloads the terminal
-#define GLUTGAME_RENDER_ONTIMER			//TRUE to use glutTimerFunc callback to render scene
-#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders
-#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
-////////////////// FUNCTION POINTERS //////////////////
+
+//////////////////////////////////// RENDER SETTINGS ////////////////////////////////////
+//#define GLUTGAME_RENDER_SHOWFPS		//Show the FPS in the terminal, overloads the terminal
+#define GLUTGAME_RENDER_FAST			//Renders the scene as fast a possible.
+#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders, ONLY IN GLUTGAME_RENDER_ONTIMER
+//#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
+
+//////////////////////////////////// FUNCTION POINTERS ////////////////////////////////////
 void (*RenderScene_fnc)();	//Callback function to render the scene
-////////////////// LIB VARS //////////////////
+
+//////////////////////////////////// LIB VARS ////////////////////////////////////
 double	rotation_lr = 0;		//
 double	rotation_ud = 0;
 double	xl = 0, yl = 0, zl = 0;
@@ -47,23 +51,183 @@ double	speed_mul = 0.1;
 double	framecounter = 0;	//Current setup , fps not supported
 int 	render_needed = 0;
 unsigned int systick = 0;
-////////////////// LIB FUNCTION //////////////////
 
+//////////////////////////////////// LIB FUNCTION ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ONLY CHANGE THE FUNCTION IF YOU KNOW WHAT YOU ARE DOING OR IF YOU JUST WANT TO EXPERIMENT
+// SO HAVE A NICE EXPERIENCE, WHEN YOU HAVE PROBLEMS TO IMPLEMENT A FEATURE (NOT BUG ;) )
+// OPEN A FEATURE REQUEST TICKET ON GITHUB
+
+//////////////////////////////////// GLUTGAME CORE FUNCTIONS ////////////////////////////////////
+
+/*
+* Function: void glutGameInit()
+* -----------------------------
+* Initialise the glutGame enviroment with the options defines.
+* returns nothing
+*/
+void glutGameInit()
+{
+	glutGameControlInit();
+	glutDisplayFunc(glutGameRender);
+	glutReshapeFunc(glutGameRescale);
+	//TODO Add other timer functions
+	//glutIdleFunc(glutPostRedisplay);
+	glutTimerFunc(0,glutGameIdle,0);	//glutIdleFunc laggs the machine
+
+}
+
+/*
+* Function: void glutGameMainLoop()
+* -----------------------------
+* Last function to be called, this will start the internal main loop service.
+* returns nothing
+*/
 void glutGameMainLoop()
 {
-	#ifdef GLUTGAME_RENDER_ONTIMER
-	glutTimerFunc(GLUTGAME_RENDER_INTERVAL, glutGameRender,systick);
-	#endif
-	//Start glut main loop
 	glutMainLoop();
 }
 
-void glutGameRenderCamera()
+/*
+* Function: void glutGameMainIdle()
+* -----------------------------
+* The internal idle function, is called when there a no events triggerd
+* returns nothing
+*/
+void glutGameIdle()
 {
-	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+GLUTGAME_PLAYER_HEIGHT+yl,zPos+zl, xr, yr, zr);
+	glutGameRender();
+	//glutPostRedisplay();
+	glutTimerFunc(1,glutGameIdle,0);
+
 }
 
-void glutGameInitCamera(double x, double y, double z)
+/*
+* Function: void glutSystickService()
+* -----------------------------
+* Handles the systick of the world.
+* returns nothing
+*/
+void glutGameSystickService(unsigned int systick_old)
+{
+	if(systick!=systick_old)printf("[GLUTGAME][WARNING] : Callback older systick, skipped a render?\n");
+	systick++;
+	//TODO ADD TIMERCALLBACK OF GLUT
+}
+
+/*
+* Function: void glutSystickGet()
+* -----------------------------
+* Returns the current value of the systick of the world
+* Value can overflow and return to 0.
+*
+*/
+unsigned int glutGameSystickGet()
+{
+	return systick;
+}
+
+//////////////////////////////////// [GLUTGAME RENDER FUNCTION]  ////////////////////////////////////
+
+
+/*
+* Function: void glutGameRenderSceneSet()
+* -----------------------------
+* Binds a callback fucntion to render the world
+*/
+void glutGameRenderSceneSet(void (*fnc_p)())
+{
+	RenderScene_fnc = fnc_p;
+}
+
+/*
+* Function: void glutGameRenderScene()
+* -----------------------------
+* Calls the callback function to render or define the world
+*/
+void glutGameRenderScene()
+{
+	(*RenderScene_fnc)();
+}
+
+/*
+* Function: void glutGameRender)
+* -----------------------------
+* The main function glut backend uses to render the world
+* and player view.
+*/
+void glutGameRender()
+{
+	glutGameRenderScene();
+	//glutGameCameraRender();
+	glutGameRenderLocalAxis();
+
+	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
+		glutSwapBuffers();
+	#else
+		glFlush();
+	#endif
+	glutGameRenderFPS();
+}
+
+/*
+* Function: void glutGameRescale()
+* -----------------------------
+* Used to update the camera aspect ratio and parameters
+* when the screen size is changed.
+* Inputs:
+*	n_w : new width in pixels of the window
+*	n_h : new height in pixels of the window
+*/
+void glutGameRescale(GLint n_w, GLint n_h)
+{
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//TODO Aspect ratio live update
+	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	//gluPerspective(60.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
+	glViewport(0, 0, n_w, n_h);
+	render_needed = 1;
+
+}
+
+/*
+* Function: void glutGameRenderFPS()
+* -----------------------------
+* Calculate the FPS of the current session.
+*/
+void glutGameRenderFPS()
+{
+	//TODO Rename to session_fps or other
+	framecounter = (double)1000/(glutGet(GLUT_ELAPSED_TIME));
+	#ifdef GLUTGAME_RENDER_SHOWFPS
+	printf("[GLUTGAME][RENDER] FPS : %.2lf\n",framecounter);
+	#endif
+}
+
+/*
+* Function: void glutGameGetFPS()
+* -----------------------------
+* Returns the current FPS of the running session.
+*/
+unsigned int glutGameRenderGetFPS()
+{
+	return framecounter;
+}
+
+//////////////////////////////////// [GLUTGAME CAMERA FUNCTIONS] ////////////////////////////////////
+// These are the function to control (translate, rotate) the camera) around the world.
+
+/*
+* Function: void glutGameInitCamera() --> glutGameCameraInit()
+* -----------------------------
+* Intialise the camera with the defaulth values.
+* Inputs:
+*	x : x location of the camera
+* 	y : y location of the camera (GLUTGAME_PLAYER_HEIGHT is not included)
+*	z : z location of the camera
+* returns nothing
+*/
+void glutGameCameraInit(double x, double y, double z)
 {
 	xPos = x; yPos = y; zPos = z;
 	xl = 0; yl = 0; zl = 0;
@@ -71,64 +235,57 @@ void glutGameInitCamera(double x, double y, double z)
 	rotation_ud = 0;
 }
 
-void glutGameSetRenderScene(void (*fnc_p)())
+/*
+* Function: void glutGameRenderCamera() --> glutGameCameraRender()
+* -----------------------------
+* Renders the camera at a specific location with a specific rotation.
+* returns nothing
+*/
+void glutGameCameraRender()
 {
-	RenderScene_fnc = fnc_p;
+	gluLookAt(xPos,yPos+GLUTGAME_PLAYER_HEIGHT,zPos, xPos+xl,yPos+GLUTGAME_PLAYER_HEIGHT+yl,zPos+zl, xr, yr, zr);
 }
 
-void glutGameRenderScene()
+void glutGameCameraPlace(double x, double y, double z, double rotation_xz, double rotation_y)
 {
-	//glutGameGetFPS();
-	(*RenderScene_fnc)();
-	glutGameRenderLocalAxis();
-	#ifdef GLUTGAME_RENDER_DUBBELBUFFER
-		//glFinish();
-		glutSwapBuffers();
-	#else
-		glFinish();
-		glFlush();
+	xPos = x; yPos = y; zPos = z;
+	rotation_lr = rotation_xz;
+	rotation_ud = rotation_y;
+}
+
+//////////////////////////////////// [GLUTGAME CONTROL FUNCTIONS] ////////////////////////////////////
+
+void glutGameControlInit()
+{
+	glutGameMouseInit();
+	glutGameKeyboardInit();
+	glutTimerFunc(GLUTGAME_CONTROL_TIMER,glutGameControlUpdate,0);
+}
+
+void glutGameControlUpdate()
+{
+	#ifdef GLUTGAME_CONTROL_USEREG
+	glutGameMoveCamera(0);
 	#endif
-	//glutGameGetFPS();
+	glutTimerFunc(GLUTGAME_CONTROL_TIMER,glutGameControlUpdate,0);
 }
 
-void glutGameRender(int systick_old)
+void glutGameMouseInit()
 {
-	#ifdef GLUT_RENDER_ONTIMER
-	if(systick!=systick_old)printf("[GLUTGAME][WARNING] : Callback older systick, skipped a render?\n");
-	#endif
-	systick += 1;
-	if(render_needed)
-	{
-		glutGameRenderCamera();
-		glutPostRedisplay();
-		render_needed = 0;
-	}
-	#ifdef GLUTGAME_RENDER_ONTIMER
-	glutTimerFunc(GLUTGAME_RENDER_INTERVAL,glutGameRender,systick);
-	#endif
+	glutMouseFunc(glutGameMouseKeys);
+	glutMotionFunc(glutGameMouseMove);
+	glutPassiveMotionFunc(glutGameMouseMove);
 }
 
-void glutGameRescale(GLint n_w, GLint n_h)
-{
-	GLdouble grens;
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60.0, (double)n_w/n_h,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
-	//gluPerspective(10.0, 1.0,  GLUTGAME_PLAYER_NEARSIGHT, GLUTGAME_PLAYER_FARSIGHT);
-	glViewport(0, 0, n_w, n_h);
-
-}
-
-double glutGameGetFPS()
-{
-	framecounter = (double)1000/(glutGet(GLUT_ELAPSED_TIME));
-	#ifdef GLUTGAME_RENDER_SHOWFPS
-	printf("[GLUTGAME][RENDER] FPS : %.2lf\n",framecounter);
-	#endif
-	return framecounter;
-}
-
-void glutGameMouseFunction(int button, int state, int x, int y)
+/*
+* Function: void glutGameMouseKeys()
+* -----------------------------
+* Tracks the state of the buttons of the mouse.
+* - mouse_left = state tracking of the left mouse button
+* - mouse_right = state tracking of the right mouse button
+* Return nothing.
+*/
+void glutGameMouseKeys(int button, int state, int x, int y)
 {
         if((state == GLUT_DOWN)&&(button == GLUT_LEFT_BUTTON))
                 mouse_state_left = 1;
@@ -140,36 +297,58 @@ void glutGameMouseFunction(int button, int state, int x, int y)
                 mouse_state_right = 0;
 }
 
+/*
+* Function: void glutGameMouseMove()
+* -----------------------------
+* Tracks the delta movement of the mouse on the window.
+* Can call callback functions when a mouse state is active
+* Returns nothing.
+*/
 void glutGameMouseMove(int x, int y)
 {
-//	glutWarpPointer(0,0);
+//	glutWarpPointer(0,0);		//Problem on some machines, TODO need to look more into before adding
 	int delta_x = 0, delta_y = 0;
+	delta_x = x - mouse_x_old;
+	delta_y = y - mouse_y_old;
 	if(mouse_state_left)
 	{
-		//#Calc Delta's
-		delta_x = x - mouse_x_old;
-		delta_y = y - mouse_y_old;
-		glutGameRotateCamera(((double)delta_x/100),((double)delta_y/100));
- 		//glutPostRedisplay();
-		render_needed = 1;
+		if((delta_x!=0)||(delta_y!=0))
+		{
+			//TODO Add callback function to bind to buttons
+			glutGameRotateCamera(((double)delta_x/100),((double)delta_y/100));
+			render_needed = 1;
+		}
 	}
 	//#Save location in old value
 	mouse_x_old = x;
 	mouse_y_old = y;
 }
 
+/*
+* Function: void glutGameKeyboardInit()
+* -----------------------------
+* Initialise the keyboard functions.
+* When GLUTGAME_CONTROL_USEREG is defined
+* this will enable keyboard state tracking on the used buttons
+* Returns nothing
+*/
 void glutGameKeyboardInit()
 {
 	#ifdef GLUTGAME_CONTROL_USEREG
 	glutIgnoreKeyRepeat(0x01);
 	glutKeyboardFunc(glutGameKeyboardPressed);
 	glutKeyboardUpFunc(glutGameKeyboardReleased);
-	glutTimerFunc(GLUTGAME_CONTROL_TIMER,glutGameMoveCamera,0);
 	#else
 	glutKeyboardFunc(glutGameKeyboardPressed);
 	#endif
 }
 
+/*
+* Function: void glutGameKeyboardPressed()
+* -----------------------------
+* Function to track when a key is pressed.
+* Returns nothing
+*/
 void glutGameKeyboardPressed(int key, int x, int y)
 {
 	#ifdef GLUTGAME_DEBUG_INFO
@@ -205,6 +384,12 @@ void glutGameKeyboardPressed(int key, int x, int y)
 	#endif
 }
 
+/*
+* Function: void glutGameKeyboardReleased()
+* -----------------------------
+* Function to track when a key is released.
+* Returns nothing
+*/
 void glutGameKeyboardReleased(int key, int x, int y)
 {
 	#ifdef GLUTGAME_DEBUG_INFO
@@ -236,6 +421,12 @@ void glutGameKeyboardReleased(int key, int x, int y)
 	}
 }
 
+/*
+* Function: void glutGameKeyboardReleased()
+* -----------------------------
+* Function to track when a key is released.
+* Returns nothing
+*/
 void glutGameMoveCamera(int key)
 {
 	render_needed = 1;
@@ -271,7 +462,7 @@ void glutGameMoveCamera(int key)
 		{
 			yPos -= GLUTGAME_PLAYER_BASESPEED * speed_mul;
 		}
-		glutTimerFunc(1,glutGameMoveCamera,0);
+		//glutTimerFunc(1,glutGameMoveCamera,0);
 	#else
 	switch(key)
 	{
@@ -292,53 +483,56 @@ void glutGameMoveCamera(int key)
 			zPos -= zl * GLUTGAME_PLAYER_BASESPEED * speed_mul;
 			break;
 		case GLUTGAME_CONTROL_UP :
-			yPos += GLUTGAME_PLAYER_BASESPEED;
+			yPos += GLUTGAME_PLAYER_BASESPEED * speed_mul;
 			break;
 		case GLUTGAME_CONTROL_DOWN :
-			yPos -= GLUTGAME_PLAYER_BASESPEED;
+			yPos -= GLUTGAME_PLAYER_BASESPEED * speed_mul;
 			break;
 		default:
-			render_needed = 0;
 			break;
 	}
 	#endif
 }
 
-void glutGameRotateCamera(double dxa, double dza)
+void glutGameRotateCamera(double dxa, double dya)
 {
 	rotation_lr += dxa;
-	rotation_ud -= dza;
+	rotation_ud -= dya;
+	if(rotation_ud > 1.5) rotation_ud = 1.5;
+	else if(rotation_ud < -1.5) rotation_ud = -1.5;
 	xl = sin(rotation_lr) * cos(rotation_ud);
 	zl = -cos(rotation_lr) * cos(rotation_ud);
 	yl = sin(rotation_ud);
 }
 
+//////////////////////////////////// GLUTGAME IN GAME DEBUG FUNCTIONS ////////////////////////////////////
+
+
 void glutGameRenderLocalAxis()
 {
 	//Draw the world axis in front of the camera
+	//TODO Change lengt into define
 	double lengt = 0.05;
-	double mod_x, mod_z;
+	double mod_x, mod_y, mod_z;
 	if(GLUTGAME_CONTROL_REG & (0x01 << 6))
 	{
-		mod_x = sin(rotation_lr)*0.20;
-		mod_z = -cos(rotation_lr)*0.20;
 		glLineWidth(3);
 		glBegin(GL_LINES);
 			glColor3f(1,0,0);
-			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
-			glVertex3d(xPos+xl+lengt+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
+			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
+			glVertex3d(xPos+xl+lengt,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
 			glColor3f(0,1,0);
-			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
-			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+zl+mod_z);
+			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
+			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+zl);
 			glColor3f(0,0,1);
-			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+mod_z);
-			glVertex3d(xPos+xl+mod_x,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl+lengt+mod_z);
+			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
+			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+lengt+zl);
 		glEnd();
 	}
 }
 
 void glutGameRenderOnScreenInfo()
 {
-	
+
 }
 
