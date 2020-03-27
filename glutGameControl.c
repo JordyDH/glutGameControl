@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <GL/glut.h>
 #include "glutGameControl.h"
 //////////////////////////////////// CONTROLS ////////////////////////////////////
@@ -31,11 +32,9 @@ uint64_t GLUTGAME_CONTROL_REG = 0;
 #define GLUTGAME_PLAYER_FARSIGHT	100
 
 //////////////////////////////////// RENDER SETTINGS ////////////////////////////////////
-//#define GLUTGAME_RENDER_SHOWFPS		//Show the FPS in the terminal, overloads the terminal
 #define GLUTGAME_RENDER_FAST			//Renders the scene as fast a possible.
-#define GLUTGAME_RENDER_INTERVAL	5	//time in ms between screen renders, ONLY IN GLUTGAME_RENDER_ONTIMER
 //#define GLUTGAME_RENDER_DUBBELBUFFER		//Enable dubbel buffering for render.
-#define GLUTGAME_SYSTICK_INTERVAL	1000
+#define GLUTGAME_SYSTICK_INTERVAL	100
 //////////////////////////////////// FUNCTION POINTERS ////////////////////////////////////
 void (*RenderScene_fnc)() = 0x00;	//Callback function to render the 3D scene
 void (*RenderScene2D_fnc)() = 0x00;	//Callback function to render the 2D scene
@@ -51,6 +50,9 @@ int	mouse_state_left, mouse_state_right = 0;
 int	mouse_x_old, mouse_y_old = 0;
 double	speed_mul = 0.1;
 double	framecounter = 0;	//Current setup , fps not supported
+int	timebase = 0;
+double	fps = 0;
+int	render_time = 0;
 int 	render_needed = 0;
 unsigned int systick = 0;
 
@@ -72,8 +74,7 @@ void glutGameInit()
 	glutGameControlInit();
 	glutDisplayFunc(glutGameRender);
 	glutReshapeFunc(glutGameRescale);
-	//glutIdleFunc(glutPostRedisplay);
-	glutTimerFunc(0,glutGameIdle,0);	//glutIdleFunc laggs the machine
+	glutTimerFunc(0,glutGameIdle,0);
 	glutTimerFunc(GLUTGAME_SYSTICK_INTERVAL,glutGameSystickService,0);
 
 }
@@ -225,11 +226,14 @@ void glutGameRescale(GLint n_w, GLint n_h)
 */
 void glutGameRenderFPS()
 {
-	//TODO Rename to session_fps or other
-	framecounter = (double)1000/(glutGet(GLUT_ELAPSED_TIME));
-	#ifdef GLUTGAME_RENDER_SHOWFPS
-	printf("[GLUTGAME][RENDER] FPS : %.2lf\n",framecounter);
-	#endif
+	framecounter++;
+	int time = glutGet(GLUT_ELAPSED_TIME);
+	if(time - timebase > 100)
+	{
+		fps = framecounter*1000.0/(time-timebase);
+		timebase = time;
+		framecounter = 0;
+	}
 }
 
 /*
@@ -239,7 +243,7 @@ void glutGameRenderFPS()
 */
 double glutGameRenderGetFPS()
 {
-	return framecounter;
+	return fps;
 }
 
 //////////////////////////////////// [GLUTGAME CAMERA FUNCTIONS] ////////////////////////////////////
@@ -377,7 +381,7 @@ void glutGameKeyboardInit()
 * Function to track when a key is pressed.
 * Returns nothing
 */
-void glutGameKeyboardPressed(int key, int x, int y)
+void glutGameKeyboardPressed(unsigned  char key, int x, int y)
 {
 	#ifdef GLUTGAME_DEBUG_INFO
 	printf("[GLUTGAME][KEYBOARD] Key pressed :%c\n",key);
@@ -418,7 +422,7 @@ void glutGameKeyboardPressed(int key, int x, int y)
 * Function to track when a key is released.
 * Returns nothing
 */
-void glutGameKeyboardReleased(int key, int x, int y)
+void glutGameKeyboardReleased(unsigned char key, int x, int y)
 {
 	#ifdef GLUTGAME_DEBUG_INFO
 	printf("[GLUTGAME][KEYBOARD] Key released :%c\n",key);
@@ -455,7 +459,7 @@ void glutGameKeyboardReleased(int key, int x, int y)
 * Function to track when a key is released.
 * Returns nothing
 */
-void glutGameMoveCamera(int key)
+void glutGameMoveCamera(unsigned char key)
 {
 	render_needed = 1;
 	//#HACK : overwrite xl, zl globals with fix xz plane values
@@ -540,27 +544,73 @@ void glutGameRenderLocalAxis()
 {
 	//Draw the world axis in front of the camera
 	//TODO Change lengt into define
-	double lengt = 0.05;
+	double lengt = 0.04;
 	double mod_x, mod_y, mod_z;
 	if(GLUTGAME_CONTROL_REG & (0x01 << 6))
 	{
-		glLineWidth(3);
+		glDisable(GL_DEPTH_TEST);
+		glLineWidth(4);
+		glBegin(GL_LINES);
+			glColor3f(0,0,0);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl)+lengt,yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glColor3f(0,0,0);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+(zl));
+			glColor3f(0,0,0);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+lengt+(zl));
+		glEnd();
+		glLineWidth(2);
 		glBegin(GL_LINES);
 			glColor3f(1,0,0);
-			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
-			glVertex3d(xPos+xl+lengt,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl)+lengt,yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
 			glColor3f(0,1,0);
-			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
-			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+zl);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT+lengt,zPos+(zl));
 			glColor3f(0,0,1);
-			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+zl);
-			glVertex3d(xPos+xl,yPos+yl+GLUTGAME_PLAYER_HEIGHT,zPos+lengt+zl);
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+(zl));
+			glVertex3d(xPos+(xl),yPos+(yl)+GLUTGAME_PLAYER_HEIGHT,zPos+lengt+(zl));
 		glEnd();
+		glEnable(GL_DEPTH_TEST);
+
+	}
+}
+
+void glutBitmapString(void *font, char *text)
+{
+	for(;(*text)!='\0';text++)
+	{
+		//glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN,(*text));
+		glutBitmapCharacter(font,(*text));
 	}
 }
 
 void glutGameRenderOnScreenInfo()
 {
-	glRasterPos2f(screen_width/2,screen_height/2);
-	glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,'X');
+	glColor3f(0,0,0);
+	char text[30];
+	//itoa(systick,text,10);
+	glRasterPos2f(5,20);
+	sprintf(text,"%s%s","glutGameCore Version dev.",GLUT_GAMEC_VERSION);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	glRasterPos2f(5,40);
+	sprintf(text,"%s%d","systick: ",systick);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	glRasterPos2f(5,60);
+	sprintf(text,"[%s%.3f]","xPos: ",xPos);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	sprintf(text,"[%s%.3f]"," yPos: ",yPos);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	sprintf(text,"[%s%.3f]"," zPos: ",zPos);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	glRasterPos2f(5,80);
+	sprintf(text,"[%s%.3f]","rotation_xz: ",sin(rotation_lr));
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	sprintf(text,"[%s%.3f]"," rotation_y: ",rotation_ud);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
+	glRasterPos2f(5,100);
+	sprintf(text,"[%s%3.2lf]","FPS: ",fps);
+	glutBitmapString(GLUT_BITMAP_9_BY_15,text);
 }
